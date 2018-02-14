@@ -1,3 +1,4 @@
+package modelo;
 import java.awt.image.BufferedImage;
 
 public class Pieza {

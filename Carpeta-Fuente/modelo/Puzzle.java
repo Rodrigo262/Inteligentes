@@ -1,3 +1,4 @@
+package modelo;
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.*;
@@ -5,10 +6,10 @@ import java.awt.*;
 import java.util.ArrayList;
 
 public class Puzzle {
-	private Pieza piezas[][];
-	private int[] position_black;
+	protected Pieza piezas[][];
+	protected int[] position_black;
 
-	
+
 	public Puzzle(){
 		this.piezas=null;
 		this.position_black=new int[2];
@@ -21,9 +22,12 @@ public class Puzzle {
 	 * @param original
 	 * @throws IOException
 	 */
-	private Puzzle(int rows, int cols, String path, Puzzle original) throws IOException{
+
+	protected Puzzle(int rows, int cols, String path, Pieza[][] original) throws IOException{
 		this.piezas = new Pieza[rows][cols];
 		this.position_black=new int[2];
+		this.position_black[0]=-1;
+		this.position_black[1]=-1;
 		splitImage(path, original);
 	}
 	/**
@@ -34,14 +38,14 @@ public class Puzzle {
 	 * @return Puzzle
 	 * @throws IOException
 	 */
-	public static Puzzle creacion(int rows, int cols, String path) throws IOException{
+	public Puzzle creacion(int rows, int cols, String path) throws IOException{
 		long ini = Stat.obtenerTiempo('M');
 		Puzzle original = new Puzzle(rows, cols, path, null);
 		long fin = Stat.obtenerTiempo('M');
 		System.out.println("Tiempo total en la creación del puzzle: "+(fin-ini)+"ms");
 		return original;
 	}
-	
+
 	/**
 	 * Reconstruye un elemento Puzzle de dimensiones (cols x rows)-1 piezas a partir de un fichero con extensión .png correspondiente a la imagen generada de un artefacto Puzzle modificado
 	 * @param rows
@@ -51,14 +55,14 @@ public class Puzzle {
 	 * @return Puzzle
 	 * @throws IOException
 	 */
-	public static Puzzle reconstruccion(int rows, int cols, String path, Puzzle original) throws IOException{
+	public Puzzle reconstruccion(int rows, int cols, String path, Pieza[][] piezas_original) throws IOException{
 		long ini = Stat.obtenerTiempo('M');
-		Puzzle modificado = new Puzzle(rows, cols, path, original);
+		Puzzle modificado = new Puzzle(rows, cols, path, piezas_original);
 		long fin = Stat.obtenerTiempo('M');
 		System.out.println("Tiempo total en la reconstruccion del puzzle: "+(fin-ini)+"ms");
 		return modificado;
 	}
-	
+
 	/**
 	 * Genera una lista de movimientos válidos según {“U”, “D”, “L”, “R”} (Up, Down, Left, Right) en función de la posición que ocupe la pieza vacía del artefacto puzzle.
 	 * @return ArrayList<Character>
@@ -73,7 +77,7 @@ public class Puzzle {
 		if(getPosition_black()[1]!=cols-1) list.add('R');
 		return list;
 	}
-	
+
 	/**
 	 * Compara si la imagen correspondiente a la pieza[ pos_i ][ pos_j ] del Puzzle coincide con alguna de las imágenes de las piezas existentes en el puzzle. Devuelve el id de la pieza a insertar en caso de coincidencia y -1 en caso contrario.
 	 * @param pos_i
@@ -100,20 +104,20 @@ public class Puzzle {
 	 * @param pieza
 	 * @return int
 	 */
-	public int checkImagesBetweenPuzzle(Pieza pieza){
+	public int checkImagesBetweenPuzzle(Pieza pieza, Pieza[][] piezas_original){
 		int id = -1;
-		int rows = getPiezas().length;
-		int cols = getPiezas()[0].length;
+		int rows = piezas_original.length;
+		int cols = piezas_original[0].length;
 		for(int i=0; i<rows && id==-1; i++){
 			for(int j=0; j<cols && id==-1; j++){
-				if(pieza.equals(getPiezas()[i][j])){
-					id = getPiezas()[i][j].getId();
+				if(pieza.equals(piezas_original[i][j])){
+					id = piezas_original[i][j].getId();
 				}
 			}
 		}
 		return id;
 	}
-	
+
 	/**
 	 * Devuelve el id de la pieza anterior a la posición pos_i, pos_j en el caso en el que no exista ninguna pieza con la misma imagen en el puzzle. Se utiliza en la construcción del Puzzle original.
 	 * @param pos_i
@@ -127,7 +131,7 @@ public class Puzzle {
 		else id=getPiezas()[pos_i][pos_j-1].getId();
 		return id;
 	}
-	
+
 	/**
 	 * Metodo que divide una imagen almacenada en path en n rows y m cols. El metodo acepta como parámetro un objeto puzzle que será utilizado en el caso en el que se nos proporcione una puzzle modificado
 	 * @param rows
@@ -136,83 +140,97 @@ public class Puzzle {
 	 * @param puzzle
 	 * @throws IOException
 	 */
-	private void splitImage(String path, Puzzle original) throws IOException{
+	private void splitImage(String path, Pieza[][] piezas_original) throws IOException{
 		boolean resoluble=true;
 		File file = new File(path); 
-        FileInputStream fis = new FileInputStream(file);
-        BufferedImage image = ImageIO.read(fis);
-        int rows=getPiezas().length;
+		FileInputStream fis = new FileInputStream(file);
+		long t1 = Stat.obtenerTiempo('M');
+		BufferedImage image = ImageIO.read(fis);
+		long t2 = Stat.obtenerTiempo('M');
+		System.out.println("Tiempo ImageIO: "+(t2-t1)+"ms");
+		int rows=getPiezas().length;
 		int cols=getPiezas()[0].length;
-        int cellWidth = image.getWidth() / cols; 
-        int cellHeight = image.getHeight() / rows;
-        /*
-        if(image.getWidth() % cols != 0 || image.getHeight() % rows != 0){
-        	System.out.println("*****WARNING: El ancho de la imagen no es múltiplo del número de columnas --> Se desprecian "+(image.getWidth() % cols)+" pixels");
-        	resoluble=false;
-        	getPiezas()[0][0]=new Pieza(-1);
-        }
-        */
-        int id;
-        
-        for(int i=0; i<rows; i++){
-        	for(int j=0; j<cols; j++){
-	        			getPiezas()[i][j]=new Pieza(new BufferedImage(cellWidth, cellHeight, image.getType()));
-	        			Graphics2D gr = getPiezas()[i][j].getImage().createGraphics();
-	        			if(original==null){
-	        				if(i==0 && j==0){
-	        					gr.setColor(Color.BLACK);
-	        					getPiezas()[i][j].setId(0);
-	        				}
-	        				else{
-	        					gr.drawImage(image, 0, 0, cellWidth, cellHeight, cellWidth * j, cellHeight * i, cellWidth * j + cellWidth, cellHeight * i + cellHeight, null);
-	    	            		id=checkImagenesInPuzzle(i, j);
-	    	            		if(id==-1) getPiezas()[i][j].setId(getIdAnterior(i, j)+1);
-	    	            		else getPiezas()[i][j].setId(id);
-	        				}
-	        			}
-	        			else{
-		            		gr.drawImage(image, 0, 0, cellWidth, cellHeight, cellWidth * j, cellHeight * i, cellWidth * j + cellWidth, cellHeight * i + cellHeight, null);
-		            		id=original.checkImagesBetweenPuzzle(getPiezas()[i][j]);
-		            		if(id!=-1){
-		            			getPiezas()[i][j].setId(id);
-		            			if(id==0) initPosition_black(i, j);
-		            		}
-		            		else{
-//		            			System.out.println("NO SOLUTION");
-		            			resoluble=false;
-		            			getPiezas()[0][0].setId(-1);
-		            		}
-		        		}
-	        			gr.dispose();
-        		}
-        }
-//        if(resoluble) System.out.println("Splitting done");
-        System.out.println("Splitting done");
+		int cellWidth = image.getWidth() / cols; 
+		int cellHeight = image.getHeight() / rows;
+		int id;
+
+		for(int i=0; i<rows; i++){
+			for(int j=0; j<cols; j++){
+				getPiezas()[i][j]=new Pieza(new BufferedImage(cellWidth, cellHeight, image.getType()));
+				Graphics2D gr = getPiezas()[i][j].getImage().createGraphics();
+				if(piezas_original==null){
+					if(i==0 && j==0){
+						gr.setColor(Color.BLACK);
+						getPiezas()[i][j].setId(0);
+						initPosition_black(0, 0);
+					}
+					else{
+						gr.drawImage(image, 0, 0, cellWidth, cellHeight, cellWidth * j, cellHeight * i, cellWidth * j + cellWidth, cellHeight * i + cellHeight, null);
+						id=checkImagenesInPuzzle(i, j);
+						if(id==-1) getPiezas()[i][j].setId(getIdAnterior(i, j)+1);
+						else getPiezas()[i][j].setId(id);
+					}
+				}
+				else{
+					gr.drawImage(image, 0, 0, cellWidth, cellHeight, cellWidth * j, cellHeight * i, cellWidth * j + cellWidth, cellHeight * i + cellHeight, null);
+					id=checkImagesBetweenPuzzle(getPiezas()[i][j], piezas_original);
+					if(id!=-1){
+						getPiezas()[i][j].setId(id);
+						if(id==0) initPosition_black(i, j);
+					}
+					else{
+						resoluble=false;
+						getPiezas()[0][0].setId(-1);
+					}
+				}
+				gr.dispose();
+			}
+		}
+
+		if(getPosition_black()[0]==-1 || getPosition_black()[1]==-1) getPiezas()[0][0].setId(-1);
+		if(piezas_original==null)
+			System.out.println("Creación terminada");
+		else 
+			System.out.println("Reconstrucción terminada");
 	}
-	
-	
-	
+
+
+
 	/**
 	 * Método que genera un fichero con extensión .png a partir de las imágenes de cada una de las piezas que conforman el artefacto Puzzle. Toma como parámetro el nombre de fichero de salida
 	 * @param OutputFileName
 	 * @throws IOException
 	 */
 	public void generarImagen(String OutputFileName) throws IOException{
-        int cellWidth = this.getPiezas()[0][0].getImage().getWidth();
-        int cellHeight = this.getPiezas()[0][0].getImage().getHeight();
-        int type = this.getPiezas()[0][0].getImage().getType();
+		int cellWidth = this.getPiezas()[0][0].getImage().getWidth();
+		int cellHeight = this.getPiezas()[0][0].getImage().getHeight();
+		int type = this.getPiezas()[0][0].getImage().getType();
 
-        BufferedImage resultImg = new BufferedImage(cellWidth*this.getPiezas()[0].length, cellHeight*this.getPiezas().length, type);
+		BufferedImage resultImg = new BufferedImage(cellWidth*this.getPiezas()[0].length, cellHeight*this.getPiezas().length, type);
 
-        for (int i = 0; i < this.getPiezas().length; i++) {
-            for (int j = 0; j < this.getPiezas()[i].length; j++) {
-                resultImg.createGraphics().drawImage(this.getPiezas()[i][j].getImage(), cellWidth * j, cellHeight * i, null);
-            }
-        }
-        System.out.println("Image "+OutputFileName+".png concatenated.....");
-        ImageIO.write(resultImg, "png", new File("images/"+OutputFileName+".png"));
+		for (int i = 0; i < this.getPiezas().length; i++) {
+			for (int j = 0; j < this.getPiezas()[i].length; j++) {
+				resultImg.createGraphics().drawImage(this.getPiezas()[i][j].getImage(), cellWidth * j, cellHeight * i, null);
+
+			}
+		}
+		System.out.println("Image "+OutputFileName+".png concatenated.....");
+		ImageIO.write(resultImg, "png", new File(OutputFileName+".png"));
 	}
-	
+
+	public void generarImagen(String OutputFileName, int width, int height) throws IOException{
+		int type = this.getPiezas()[0][0].getImage().getType();
+
+		BufferedImage resultImg = new BufferedImage(width, height, type);
+
+		for (int i = 0; i < this.getPiezas().length; i++) {
+			for (int j = 0; j < this.getPiezas()[i].length; j++) {
+				resultImg.createGraphics().drawImage(this.getPiezas()[i][j].getImage(), width, height, null);
+			}
+		}
+		ImageIO.write(resultImg, "png", new File("images/"+OutputFileName+".png"));
+	}
+
 	/**
 	 * Método que ejecuta un movimiento en la pieza del artefacto Puzzle según un movimiento válido pasado como parámetro entre {“U”, “D”, “L”, “R”} (Up, Down, Left, Right).
 	 */
@@ -245,7 +263,7 @@ public class Puzzle {
 			break;
 		}
 	}
-	
+
 	/**
 	 * método que imprime por consola el id de cada una de las piezas que conforman el artefacto Puzzle.
 	 */
@@ -259,7 +277,7 @@ public class Puzzle {
 		}
 		return s;
 	}
-	
+
 	public int[] findBlack(){
 		int[] black = new int[2];
 		for(int i=0; i < getPiezas().length; i++)
@@ -270,15 +288,15 @@ public class Puzzle {
 				}
 		return black;
 	}
-	
+
 	public Pieza[][] getPiezas() {
 		return piezas;
 	}
-	
+
 	public void setPiezas(Pieza[][] piezas){
 		this.piezas = piezas;
 	}
-	
+
 	public int[] getPosition_black() {
 		return position_black;
 	}

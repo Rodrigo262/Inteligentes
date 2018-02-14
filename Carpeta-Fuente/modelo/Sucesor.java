@@ -1,16 +1,17 @@
+package modelo;
 
 public class Sucesor {
 	private Character accion;
-	private Puzzle estado;
+	private Estado estado;
 	private int coste = 0;
 	
-	public Sucesor(Character accion, Puzzle estado){
+	public Sucesor(Character accion, Estado estado){
 		this.accion = accion;
 		this.estado = estado;
 		this.coste += 1;
 	}
 	
-	public Sucesor(Character accion, Puzzle estado, int coste){
+	public Sucesor(Character accion, Estado estado, int coste){
 		this.accion = accion;
 		this.estado = estado;
 		this.coste += coste;
@@ -24,11 +25,11 @@ public class Sucesor {
 		this.accion = accion;
 	}
 
-	public Puzzle getEstado() {
+	public Estado getEstado() {
 		return estado;
 	}
 
-	public void setEstado(Puzzle estado) {
+	public void setEstado(Estado estado) {
 		this.estado = estado;
 	}
 
