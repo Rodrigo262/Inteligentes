@@ -1,4 +1,4 @@
-# Inteligentes
+# Sistemas Inteligentes
 Práctica Sistemas Inteligentes 2016-17
 
 BÚSQUEDA DE SOLUCIONES
